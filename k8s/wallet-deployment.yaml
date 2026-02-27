@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wallet-service
+  template:
+    metadata:
+      labels:
+        app: wallet-service
+    spec:
+      containers:
+        - name: wallet-service
+          image: wallet-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: WALLET_PORT
+              value: "8082"
+            - name: WALLET_DB_URL
+              value: "jdbc:postgresql://host.docker.internal:5433/nexuspay_db"
+            - name: DB_USERNAME
+              value: "postgres"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nexuspay-db-secrets
+                  key: DB_PASSWORD
+            - name: REDIS_HOST
+              value: "host.docker.internal"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: KAFKA_SERVER
+              value: "host.docker.internal:9092"
+            - name: NEXUSPAY_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nexuspay-secrets
+                  key: JWT_SECRET
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-service
+spec:
+  selector:
+    app: wallet-service
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
+  type: ClusterIP
